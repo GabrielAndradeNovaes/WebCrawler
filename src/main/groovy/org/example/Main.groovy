@@ -18,8 +18,8 @@ class TISSCrawler {
         baixarComponenteComunicacao()
         coletarHistoricoVersoes()
         baixarTabelaErros()
-        baixarXLSX()  // Função para baixar o arquivo XLSX
-        baixarArquivosAuxiliares()  // Função para baixar o arquivo ZIP dos arquivos auxiliares
+        baixarXLSX()
+        baixarArquivosAuxiliares()
     }
 
     static void baixarComponenteComunicacao() {
@@ -28,7 +28,6 @@ class TISSCrawler {
             def doc = Jsoup.connect(url).get()
             def link = obterLinkCompleto(doc.select("a:contains(Componente de Comunicação)").attr("href"))
             if (link) {
-                // Salvar como .zip
                 baixarArquivo(link, "Componente_Comunicacao.zip")
             } else {
                 println "Link para Componente de Comunicação não encontrado."
@@ -42,27 +41,22 @@ class TISSCrawler {
         def url = "https://www.gov.br/ans/pt-br/assuntos/prestadores/padrao-para-troca-de-informacao-de-saude-suplementar-2013-tiss/padrao-tiss-historico-das-versoes-dos-componentes-do-padrao-tiss"
         try {
             def doc = Jsoup.connect(url).get()
-            def tabela = doc.select("table").first() // Seleciona a primeira tabela da página
+            def tabela = doc.select("table").first()
             if (tabela) {
-                def linhas = tabela.select("tr").drop(1)  // Ignora o cabeçalho da tabela
+                def linhas = tabela.select("tr").drop(1)
                 def dados = []
 
-                // Itera sobre as linhas da tabela
                 linhas.each { linha ->
                     def colunas = linha.select("td").collect { it.text() } // Coleta os textos das células
 
-                    // Verifica se a competência é a partir de jan/2016
                     if (colunas.size() >= 3 && colunas[0].matches(/\d{2}\/\d{4}/)) {
                         if (colunas[0].compareTo("01/2016") >= 0) {
-                            // Adiciona competência, publicação e início de vigência
                             dados << [colunas[0], colunas[1], colunas[2]]
                         }
                     }
                 }
 
-                // Verifique se há dados coletados antes de salvar
                 if (dados.size() > 0) {
-                    // Salvar os dados coletados como um arquivo .txt
                     salvarComoTxt(dados, "$DOWNLOAD_PATH/historico_versoes.txt")
                     println "Histórico de versões salvo com sucesso em .txt."
                 } else {
@@ -81,13 +75,11 @@ class TISSCrawler {
             FileWriter writer = new FileWriter(caminhoArquivo)
             BufferedWriter bufferedWriter = new BufferedWriter(writer)
 
-            // Verifica se há dados a serem escritos
             if (dados.isEmpty()) {
                 println "Nenhum dado para escrever no arquivo."
                 return
             }
 
-            // Escreve os dados no arquivo de texto
             dados.each { linha ->
                 bufferedWriter.write("Competência: ${linha[0]}, Publicação: ${linha[1]}, Início de Vigência: ${linha[2]}")
                 bufferedWriter.newLine()
@@ -107,7 +99,7 @@ class TISSCrawler {
             def doc = Jsoup.connect(url).get()
             def link = obterLinkCompleto(doc.select("a:contains(Tabela de erros)").attr("href"))
             if (link) {
-                baixarArquivo(link, "Tabela_Erros.zip") // Salvar como .zip
+                baixarArquivo(link, "Tabela_Erros.zip")
             } else {
                 println "Link para a Tabela de Erros não encontrado."
             }
@@ -117,7 +109,6 @@ class TISSCrawler {
     }
 
     static void baixarXLSX() {
-        // Substitua pela URL correta do arquivo XLSX
         def urlXLSX = "https://www.gov.br/ans/pt-br/arquivos/assuntos/prestadores/padrao-para-troca-de-informacao-de-saude-suplementar-tiss/padrao-tiss-tabelas-relacionadas/Tabelaerrosenvioparaanspadraotiss__1_.xlsx"
         try {
             if (urlXLSX) {
@@ -155,7 +146,7 @@ class TISSCrawler {
     static void baixarArquivo(String url, String nomeArquivo) {
         try {
             URL website = new URL(url)
-            def inStream = website.openStream() // Usando 'def' para inferir o tipo
+            def inStream = website.openStream()
             Files.copy(inStream, Paths.get("$DOWNLOAD_PATH/$nomeArquivo"), StandardCopyOption.REPLACE_EXISTING)
             inStream.close()
             println "$nomeArquivo baixado com sucesso."
@@ -164,32 +155,4 @@ class TISSCrawler {
         }
     }
 
-    // Função para salvar dados como .xlsx
-    static void salvarComoXlsx(def dados, String caminhoArquivo) {
-        try {
-            Workbook workbook = new XSSFWorkbook()
-            Sheet sheet = workbook.createSheet("Dados")
-
-            // Preenche o conteúdo no arquivo .xlsx
-            if (dados instanceof List) {
-                for (int i = 0; i < dados.size(); i++) {
-                    Row row = sheet.createRow(i)
-                    def coluna = dados[i]
-                    for (int j = 0; j < coluna.size(); j++) {
-                        Cell cell = row.createCell(j)
-                        cell.setCellValue(coluna[j])
-                    }
-                }
-            }
-
-            FileOutputStream fileOut = new FileOutputStream(caminhoArquivo)
-            workbook.write(fileOut)
-            fileOut.close()
-            workbook.close()
-
-            println "Arquivo salvo com sucesso em: $caminhoArquivo"
-        } catch (Exception e) {
-            println "Erro ao salvar arquivo como .xlsx: ${e.message}"
-        }
-    }
 }

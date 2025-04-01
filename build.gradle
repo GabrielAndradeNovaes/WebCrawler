@@ -14,16 +14,12 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
-    // Biblioteca para fazer requisições HTTP
     implementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
 
-    // Biblioteca para parsing de HTML
     implementation 'org.jsoup:jsoup:1.15.3'
 
-    // Dependência do Apache POI para trabalhar com arquivos .xlsx
     implementation 'org.apache.poi:poi-ooxml:5.2.3'
 
-    // Dependências para testes
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
