@@ -41,24 +41,23 @@ class TISSCrawler {
         def url = "https://www.gov.br/ans/pt-br/assuntos/prestadores/padrao-para-troca-de-informacao-de-saude-suplementar-2013-tiss/padrao-tiss-historico-das-versoes-dos-componentes-do-padrao-tiss"
         try {
             def doc = Jsoup.connect(url).get()
-            def tabela = doc.select("table").first()
+            def tabela = doc.select("table").first() // Obtém a primeira tabela da página
+
             if (tabela) {
-                def linhas = tabela.select("tr").drop(1)
+                def linhas = tabela.select("tbody tr")
                 def dados = []
 
                 linhas.each { linha ->
-                    def colunas = linha.select("td").collect { it.text() } // Coleta os textos das células
-
-                    if (colunas.size() >= 3 && colunas[0].matches(/\d{2}\/\d{4}/)) {
-                        if (colunas[0].compareTo("01/2016") >= 0) {
-                            dados << [colunas[0], colunas[1], colunas[2]]
-                        }
+                    def colunas = linha.select("td").collect { it.text().trim() } // Remove espaços em branco extras
+                    if (colunas.size() >= 3) {
+                        dados << [colunas[0], colunas[1], colunas[2]]
                     }
                 }
 
-                if (dados.size() > 0) {
+                if (!dados.isEmpty()) {
                     salvarComoTxt(dados, "$DOWNLOAD_PATH/historico_versoes.txt")
-                    println "Histórico de versões salvo com sucesso em .txt."
+                    salvarComoXlsx(dados, "$DOWNLOAD_PATH/historico_versoes.xlsx")
+                    println "Histórico de versões salvo com sucesso em .txt e .xlsx."
                 } else {
                     println "Nenhum dado coletado para o histórico de versões."
                 }
@@ -152,6 +151,34 @@ class TISSCrawler {
             println "$nomeArquivo baixado com sucesso."
         } catch (Exception e) {
             println "Erro ao baixar $nomeArquivo: ${e.message}"
+        }
+    }
+
+    static void salvarComoXlsx(List<List<String>> dados, String caminhoArquivo) {
+        try {
+            XSSFWorkbook workbook = new XSSFWorkbook()
+            Sheet sheet = workbook.createSheet("Histórico Versões")
+
+            Row headerRow = sheet.createRow(0)
+            ["Competência", "Publicação", "Início de Vigência"].eachWithIndex { titulo, index ->
+                headerRow.createCell(index).setCellValue(titulo)
+            }
+
+            dados.eachWithIndex { linha, rowIndex ->
+                Row row = sheet.createRow(rowIndex + 1)
+                linha.eachWithIndex { valor, colIndex ->
+                    row.createCell(colIndex).setCellValue(valor)
+                }
+            }
+
+            FileOutputStream fileOut = new FileOutputStream(caminhoArquivo.toString()) // Converte GString para String
+            workbook.write(fileOut)
+            fileOut.close()
+            workbook.close()
+
+            println "Arquivo XLSX salvo com sucesso em: $caminhoArquivo"
+        } catch (Exception e) {
+            println "Erro ao salvar arquivo como XLSX: ${e.message}"
         }
     }
 
